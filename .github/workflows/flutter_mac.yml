@@ -1,0 +1,75 @@
+name: Build Flutter iOS + Android
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/flutter-mac.yml' 
+      - 'src/**'
+
+  pull_request:
+    branches: [ main ]
+
+  workflow_dispatch:
+  
+env:
+  APPCENTER_APPNAME_ANDROID: k-strathdee/flutter-mvu-android
+  APPCENTER_APPNAME_IOS: k-strathdee/flutter-mvu-ios
+  APPCENTER_GROUP: Collaborators
+
+jobs:
+  build:
+    runs-on: macos-11
+    steps:
+    
+    - uses: actions/checkout@v2
+    - uses: actions/setup-java@v2
+      with:
+        distribution: 'zulu'
+        java-version: '11'
+    - uses: subosito/flutter-action@v1
+      with:
+        flutter-version: '2.5.0'
+    
+    - name: Setup iOS Code Signing Resources
+      shell: bash
+      run: |
+        pip3 install codemagic-cli-tools
+        keychain initialize
+        app-store-connect fetch-signing-files $(xcode-project detect-bundle-id) --private-key="${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}" --platform IOS --type IOS_APP_ADHOC --certificate-key="${{ secrets.CERT_KEY }}" --issuer-id=${{ secrets.APP_STORE_CONNECT_ISSUER_ID }} --key-id=${{ secrets.APP_STORE_CONNECT_KEY_IDENTIFIER }} --create
+        keychain add-certificates
+        xcode-project use-profiles
+
+    - name: Setup Android Code Signing Resources
+      shell: bash
+      run: |
+        mkdir android/app/keystore
+        echo ${{ secrets.KEYSTORE }} | base64 -d > android/app/keystore/upload-keystore.jks
+
+    - name: Fetch pub packages
+      shell: bash
+      run: |
+        flutter packages pub get
+        find . -name "Podfile" -execdir pod install \;
+        flutter pub get
+
+    - name: Build Android Release
+      shell: bash
+      env:
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+      run: |
+        flutter build appbundle --release
+
+    - name: Build ios release
+      shell: bash
+      run: |
+        flutter build ipa --release --export-options-plist=$HOME/export_options.plist
+    
+    - name: Distribute iOS & Android
+      shell: bash
+      run: |
+        appcenter login --token ${{secrets.APP_CENTER_TOKEN}}
+        appcenter distribute release -f $(find $(pwd) -name "*.ipa") -g ${{env.APPCENTER_GROUP}} --app ${{env.APPCENTER_APPNAME_IOS}}
+        appcenter distribute release -f build/app/outputs/bundle/release/app-release.aab -g ${{env.APPCENTER_GROUP}} --app ${{env.APPCENTER_APPNAME_ANDROID}}

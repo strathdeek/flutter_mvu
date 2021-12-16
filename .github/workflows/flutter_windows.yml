@@ -1,0 +1,35 @@
+name: Build Flutter UWP
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/flutter-windows.yml' 
+      - 'src/**'
+
+  pull_request:
+    branches: [ main ]
+
+  workflow_dispatch:
+
+env:
+  APPCENTER_APPNAME_UWP: k-strathdee/flutter-mvu-uwp
+  APPCENTER_GROUP: Collaborators
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: subosito/flutter-action@v1
+      with:
+        channel: dev
+    - run: flutter config --enable-windows-uwp-desktop
+    - run: flutter build winuwp -v
+
+    - name: Distribute Windows UWP
+      shell: bash
+      run: |
+        npm install -g appcenter-cli
+        appcenter login --token ${{secrets.APP_CENTER_TOKEN}}
+        appcenter distribute release -f $(find $(pwd) -name "*.msix") -g ${{env.APPCENTER_GROUP}} --app ${{env.APPCENTER_APPNAME_UWP}}
