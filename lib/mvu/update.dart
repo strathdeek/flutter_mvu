@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:dartz/dartz.dart';
-import 'package:flutter_mvu/delayed.dart';
+import 'package:flutter_mvu/async_operations.dart';
 import 'package:provider/provider.dart';
 
 import 'messages.dart';
@@ -11,16 +11,20 @@ import 'model.dart';
 class Update extends ChangeNotifier {
   Model model = const Model(counterValue: 0, progress: 0);
 
-  void dispatch(Message message, BuildContext context) {
-    final newModel = update(message, model, context);
-    newModel.forEach((a) {
-      model = a;
-      notifyListeners();
-    });
+  void dispatch(Message message) {
+    final newModel = update(message, model, dispatch);
+
+    newModel.map((a) => _emit(a));
+  }
+
+  // method to notify the UI to rebuild a new view with the provided model.
+  void _emit(Model newModel) {
+    model = newModel;
+    notifyListeners();
   }
 }
 
-Option<Model> update(Message message, Model model, BuildContext context) {
+Option<Model> update(Message message, Model model, Function(Message) dispatch) {
   switch (message.runtimeType) {
     case DecrementCounter:
       return some(model.copyWith(counterValue: model.counterValue - 1));
@@ -29,15 +33,15 @@ Option<Model> update(Message message, Model model, BuildContext context) {
     case SetCounterRandom:
       return some(model.copyWith(counterValue: Random().nextInt(100)));
     case SetCounterRandomAfterDelay:
-      dispatchSetCounterRandomAferDelay(context);
+      dispatchSetCounterRandomAferDelay(dispatch);
       return none();
     case StartProgressBar:
-      dispatchIncrementProgressBarAfterDelay(context);
+      dispatchIncrementProgressBarAfterDelay(dispatch);
       return none();
     case IncrementProgressBar:
       final newModel = model.copyWith(progress: model.progress + .001);
       if (newModel.progress < 1) {
-        dispatchIncrementProgressBarAfterDelay(context);
+        dispatchIncrementProgressBarAfterDelay(dispatch);
       }
       return some(newModel);
     case ResetProgressBar:
@@ -48,5 +52,5 @@ Option<Model> update(Message message, Model model, BuildContext context) {
 }
 
 void dispatch(BuildContext context, Message message) {
-  Provider.of<Update>(context, listen: false).dispatch(message, context);
+  Provider.of<Update>(context, listen: false).dispatch(message);
 }
