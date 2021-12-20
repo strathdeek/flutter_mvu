@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_mvu/bloc/messages.dart';
-import 'package:flutter_mvu/dispatcher.dart';
+import 'package:provider/provider.dart';
 
-import '../bloc/update.dart';
-import '../bloc/model.dart';
+import '../mvu/messages.dart';
+import '../mvu/update.dart';
 
 class CounterView extends StatelessWidget {
   const CounterView({Key? key}) : super(key: key);
@@ -13,7 +11,7 @@ class CounterView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("widget.title"),
+        title: const Text("Title"),
       ),
       body: Center(
         child: Column(
@@ -22,27 +20,31 @@ class CounterView extends StatelessWidget {
             const Text(
               'You have pushed the button this many times:',
             ),
-            BlocBuilder<Update, Model>(
-              builder: (context, model) {
-                return Text(
-                  '${model.counterValue}',
-                  style: Theme.of(context).textTheme.headline4,
-                );
-              },
+            Consumer<Update>(builder: ((context, value, child) {
+              return Text(
+                '${value.model.counterValue}',
+                style: Theme.of(context).textTheme.headline4,
+              );
+            })),
+            Consumer<Update>(builder: ((context, value, child) {
+              return SizedBox(
+                  height: 100,
+                  width: 100,
+                  child: CircularProgressIndicator(
+                    value: value.model.progress,
+                  ));
+            })),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                    onPressed: () => dispatch(context, StartProgressBar()),
+                    child: const Text("Start")),
+                ElevatedButton(
+                    onPressed: () => dispatch(context, ResetProgressBar()),
+                    child: const Text("Reset")),
+              ],
             ),
-            BlocBuilder<Update, Model>(
-              builder: (context, model) {
-                return SizedBox(
-                    height: 100,
-                    width: 100,
-                    child: CircularProgressIndicator(
-                      value: model.progress,
-                    ));
-              },
-            ),
-            ElevatedButton(
-                onPressed: () => dispatch(context, IncrementProgressBar()),
-                child: Text("Start")),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [

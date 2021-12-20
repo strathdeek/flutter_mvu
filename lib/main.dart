@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_mvu/bloc/update.dart';
-import 'package:flutter_mvu/dispatcher.dart';
 import 'package:flutter_mvu/pages/counter_view.dart';
+import 'package:provider/provider.dart';
+
+import 'mvu/update.dart';
 
 void main() {
-  runApp(BlocProvider(
-    create: (context) => Update(),
-    child: const MyApp(),
-  ));
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => Update(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {

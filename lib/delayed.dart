@@ -1,20 +1,15 @@
-import 'package:dartz/dartz.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_mvu/mvu/update.dart';
 
-import 'bloc/messages.dart';
-import 'bloc/model.dart';
+import 'mvu/messages.dart';
+import 'mvu/model.dart';
 
-Option<Model> delayedMessage(Function add) {
+void dispatchSetCounterRandomAferDelay(BuildContext context) {
   Future.delayed(const Duration(seconds: 1))
-      .then((value) => add(SetCounterRandom()))
-      .then((value) => none());
-  return none();
+      .then((value) => dispatch(context, SetCounterRandom()));
 }
 
-Option<Model> delayedProgressMessage(Function add, Model model) {
-  if (model.progress >= 1) {
-    return none();
-  }
-  Future.delayed(const Duration(milliseconds: 300))
-      .then((value) => add(IncrementProgressBar()));
-  return some(model.copyWith(progress: model.progress + 0.05));
+void dispatchIncrementProgressBarAfterDelay(BuildContext context) {
+  Future.delayed(const Duration(milliseconds: 1))
+      .then((value) => dispatch(context, IncrementProgressBar()));
 }
